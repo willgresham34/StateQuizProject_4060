@@ -14,6 +14,9 @@ public class Quiz {
     }
 
     // getters
+    public long getId(){
+        return id;
+    }
     public String getQuizDate() {
         return quizDate;
     }

@@ -9,7 +9,6 @@ import android.util.Log;
 public class StateQuestionDBHelper extends SQLiteOpenHelper {
 
     private static final String DEBUG_TAG = "StateQuestionDBHelper";
-
     private static final String DB_NAME = "statequestion.db";
     private static final int DB_VERSION = 1;
 
@@ -32,9 +31,10 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
     public static final String QUIZ_COLUMN_ANSWERED_COUNT = "answered_count";
 
     //columns for qq relation
+    public static final String QQ_ID = "_id";
     public static final String QQ_COLUMN_QUIZ = "quiz_id";
     public static final String QQ_COLUMN_QUESTION = "question_id";
-
+    public static final String QQ_COLUMN_ANSWER = "answer";
     private static StateQuestionDBHelper helperInstance;
 
     // Create table state questions
@@ -43,21 +43,23 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
                     STATEQUESTIONS_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     STATEQUESTIONS_COLUMN_STATE + " TEXT NOT NULL, " +
                     STATEQUESTIONS_COLUMN_CAPITAL + " TEXT NOT NULL, " +
-                    STATEQUESTIONS_COLUMN_SECOND_CITY + " TEXT, " +
-                    STATEQUESTIONS_COLUMN_THIRD_CITY + " TEXT" +
+                    STATEQUESTIONS_COLUMN_SECOND_CITY + " TEXT NOT NULL, " +
+                    STATEQUESTIONS_COLUMN_THIRD_CITY + " TEXT NOT NULL" +
                     ");";
 
     private static final String CREATE_QUIZ =
             "CREATE TABLE " + TABLE_QUIZ + " (" +
                     QUIZ_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     QUIZ_COLUMN_DATE + " TEXT NOT NULL, " +
-                    QUIZ_COlUMN_CORRECT_COUNT + "INTEGER NOT NULL, " +
+                    QUIZ_COlUMN_CORRECT_COUNT + " INTEGER NOT NULL, " +
                     QUIZ_COLUMN_ANSWERED_COUNT + " INTEGER NOT NULL" +
                     ");";
 
     private static final String CREATE_QQ = "CREATE TABLE " + TABLE_QQ + " (" +
+            QQ_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             QQ_COLUMN_QUIZ + " INTEGER NOT NULL, " +
             QQ_COLUMN_QUESTION + " INTEGER NOT NULL, " +
+            QQ_COLUMN_ANSWER + " TEXT, " +
             "FOREIGN KEY(" + QQ_COLUMN_QUIZ + ") REFERENCES " + TABLE_QUIZ + "(" + QUIZ_COLUMN_ID + ")," +
             "FOREIGN KEY(" + QQ_COLUMN_QUESTION + ") REFERENCES " + TABLE_STATEQUESTIONS + "(" + STATEQUESTIONS_COLUMN_ID + ")" +
             ");";

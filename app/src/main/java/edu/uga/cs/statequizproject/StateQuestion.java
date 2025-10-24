@@ -15,6 +15,11 @@ public class StateQuestion {
         this.secondCity = secondCity;
         this.thirdCity = thirdCity;
     }
+
+    public long getId() {
+        return  id;
+    }
+
     public String getState() {
         return state;
     }
