@@ -1,6 +1,6 @@
-
 package edu.uga.cs.statequizproject;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,43 +34,74 @@ public class ResultFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_result, container, false);
         TextView tv = v.findViewById(R.id.tvScore);
         Button again = v.findViewById(R.id.btnAgain);
         Button history = v.findViewById(R.id.btnSeeHistory);
 
-        new Thread(() -> {
-            StateQuestionData repo = new StateQuestionData(requireContext());
-            repo.open();
-            repo.finalizeQuiz(quizId);
-            repo.close();
-
-            // new repo for loadQuizDto
-            StateQuestionData repo2 = new StateQuestionData(requireContext());
-            repo2.open();
-            QuizDto dto = repo2.loadQuizDto(quizId);
-            repo2.close();
-//            QuizDto dto = repo.loadQuizDto(quizId);
-//            requireActivity().runOnUiThread(() -> {
-//                tv.setText(getString(R.string.your_score, dto.getCorrectCount(), dto.getQuestions().size()));
-//            });
-        }).start();
+        Context appCtx = requireContext().getApplicationContext();
+        new FinalizeQuizTask(appCtx, tv).execute(quizId);
 
         again.setOnClickListener(b -> {
             requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, new SplashFragment())
-                .commit();
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new SplashFragment())
+                    .commit();
         });
+
         history.setOnClickListener(b -> {
             requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, new HistoryFragment())
-                .addToBackStack(null)
-                .commit();
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new HistoryFragment())
+                    .addToBackStack(null)
+                    .commit();
         });
 
         return v;
+    }
+
+    private class FinalizeQuizTask extends android.os.AsyncTask<Long, Void, QuizDto> {
+
+        private final Context appContext;
+        private final TextView scoreView;
+
+        FinalizeQuizTask(Context appContext, TextView scoreView) {
+            this.appContext = appContext;
+            this.scoreView = scoreView;
+        }
+
+        @Override
+        protected QuizDto doInBackground(Long... params) {
+            long qid = params[0];
+            StateQuestionData repo = new StateQuestionData(appContext);
+            repo.open();
+
+            QuizDto dto = repo.loadQuizDto(qid);
+            dto.recomputeCounters();
+            repo.finalizeQuizWithCounts(
+                    qid,
+                    dto.getCorrectCount(),
+                    dto.getAnsweredCount()
+            );
+            repo.close();
+            return dto;
+        }
+
+        @Override
+        protected void onPostExecute(QuizDto dto) {
+            if (!isAdded()) {
+                return;
+            }
+            scoreView.setText(
+                    getString(
+                            R.string.your_score,
+                            dto.getCorrectCount(),
+                            dto.getQuestions().size()
+                    )
+            );
+        }
     }
 }

@@ -33,20 +33,12 @@ public class StateQuestionData {
     }
 
     public void close() {
-        if (stateQuestionDBHelper != null) {
-            stateQuestionDBHelper.close();
-        }
     }
 
     public boolean isDbOpen() {
         return db != null && db.isOpen();
     }
 
-    /* ------------------------------------------------------------------
-       EXISTING METHODS FROM YOUR FILE
-       ------------------------------------------------------------------ */
-
-    // retrieve quiz results (old style, all quizzes, any order)
     public List<Quiz> retrieveAllQuizzes() {
         ArrayList<Quiz> quizzes = new ArrayList<>();
         Cursor cursor = null;
@@ -74,7 +66,6 @@ public class StateQuestionData {
                     columnIndex = cursor.getColumnIndex(StateQuestionDBHelper.QUIZ_COLUMN_DATE);
                     String date = cursor.getString(columnIndex);
 
-                    // NOTE: this is how your file spelled it:
                     columnIndex = cursor.getColumnIndex(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT);
                     int correct = cursor.getInt(columnIndex);
 
@@ -100,11 +91,11 @@ public class StateQuestionData {
         return quizzes;
     }
 
-    // load a quiz + its questions
+    // load a quiz and its questions
     public QuizDto loadQuizDto(long quizId) {
         QuizDto dto = new QuizDto(quizId);
 
-        // 1) load quiz header
+        // load quiz header
         try (Cursor qc = db.query(
                 StateQuestionDBHelper.TABLE_QUIZ,
                 null,
@@ -127,7 +118,7 @@ public class StateQuestionData {
             }
         }
 
-        // 2) load questions for this quiz
+        // load questions for this quiz
         String sql =
                 "SELECT " +
                         "qq." + StateQuestionDBHelper.QQ_COLUMN_QUESTION + " AS question_id, " +
@@ -173,7 +164,7 @@ public class StateQuestionData {
         return dto;
     }
 
-    // store new Quiz (your original method)
+    // store new quiz
     public QuizDto storeQuiz(QuizDto dto) {
 
         ContentValues values = new ContentValues();
@@ -202,17 +193,15 @@ public class StateQuestionData {
         return dto;
     }
 
-    // original seeder (I’ll leave it, but we’ll add a safer one below)
+    // original seeder
     public void seedStateQuestions(Context context) {
         long count = DatabaseUtils.queryNumEntries(db, StateQuestionDBHelper.TABLE_STATEQUESTIONS);
         if (count > 0) return;
 
         try {
-            // your original name was "state_question.csv"
-            // but your assets file is actually "state_capitals.csv"
             InputStream in_s = context.getAssets().open("state_capitals.csv");
             CSVReader reader = new CSVReader(new InputStreamReader(in_s));
-            reader.readNext(); // skip header
+            reader.readNext();
             String[] nextRow;
             while ((nextRow = reader.readNext()) != null) {
 
@@ -231,11 +220,7 @@ public class StateQuestionData {
         }
     }
 
-    /* ------------------------------------------------------------------
-       NEW METHODS (fixed names)
-       ------------------------------------------------------------------ */
-
-    // 1) make sure DB is seeded
+    // make sure db is seeded
     public void ensureSeededFromCsvIfEmpty() {
         // make sure db is open
         if (!isDbOpen()) {
@@ -267,19 +252,16 @@ public class StateQuestionData {
         }
     }
 
-    // 2) create a new quiz with N random states
+    // create a new quiz with n random states
     public long createNewQuiz(int n) {
-        // make sure DB is open
         if (!isDbOpen()) {
             open();
         }
 
-        // 1. insert quiz header
+        // insert quiz header
         ContentValues qv = new ContentValues();
-        // your table wants NON NULL date:
         qv.put(StateQuestionDBHelper.QUIZ_COLUMN_DATE,
                 String.valueOf(System.currentTimeMillis()));
-        // your column names from your helper:
         qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, 0);
         qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, 0);
 
@@ -289,7 +271,7 @@ public class StateQuestionData {
             return -1;
         }
 
-        // 2. pick N random states
+        // pick n random states
         Cursor c = db.rawQuery(
                 "SELECT " +
                         StateQuestionDBHelper.STATEQUESTIONS_COLUMN_ID +
@@ -302,7 +284,6 @@ public class StateQuestionData {
             long questionRowId = c.getLong(0);
 
             ContentValues v = new ContentValues();
-            // IMPORTANT: use your column names
             v.put(StateQuestionDBHelper.QQ_COLUMN_QUIZ, quizId);
             v.put(StateQuestionDBHelper.QQ_COLUMN_QUESTION, questionRowId);
             v.putNull(StateQuestionDBHelper.QQ_COLUMN_ANSWER);
@@ -319,7 +300,7 @@ public class StateQuestionData {
     }
 
 
-    // 3) save a single answer, then recompute quiz counters
+    // save a single answer, then recompute quiz counters
     public void saveAnswer(long quizId, long questionRowId, String answer) {
         if (!isDbOpen()) {
             open();
@@ -348,12 +329,10 @@ public class StateQuestionData {
                 StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
                 new String[]{ String.valueOf(quizId) }
         );
-        // you can leave DB open if you reuse it, or:
-        // close();
     }
 
 
-    // 4) finalize quiz at the end
+    // finalize quiz at the end
     public void finalizeQuiz(long quizId) {
         if (!isDbOpen()) {
             open();
@@ -375,7 +354,35 @@ public class StateQuestionData {
         );
     }
 
-    // 5) load all quizzes newest → oldest (for HistoryFragment)
+    // helper
+    public void finalizePartial(long quizId, int correct, int answered) {
+        if (!isDbOpen()) open();
+        ContentValues qv = new ContentValues();
+        qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, correct);
+        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, answered);
+        db.update(
+                StateQuestionDBHelper.TABLE_QUIZ,
+                qv,
+                StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
+                new String[]{ String.valueOf(quizId) }
+        );
+    }
+
+    public void finalizeQuizWithCounts(long quizId, int correct, int answered) {
+        if (!isDbOpen()) open();
+        ContentValues qv = new ContentValues();
+        qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, correct);
+        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, answered);
+        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_DATE, String.valueOf(System.currentTimeMillis()));
+        db.update(
+                StateQuestionDBHelper.TABLE_QUIZ,
+                qv,
+                StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
+                new String[]{ String.valueOf(quizId) }
+        );
+    }
+
+    // load all quizzes newest to oldest for HistoryFragment
     public List<Quiz> loadAllQuizzesDesc() {
         if (!isDbOpen()) {
             open();

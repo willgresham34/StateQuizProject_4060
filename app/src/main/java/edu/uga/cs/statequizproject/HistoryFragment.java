@@ -1,10 +1,10 @@
-
 package edu.uga.cs.statequizproject;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,21 +16,43 @@ import java.util.List;
 
 public class HistoryFragment extends Fragment {
 
+    private RecyclerView rv;
+    private Button backButton;
+
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_history, container, false);
-        RecyclerView rv = v.findViewById(R.id.recycler);
+        rv = v.findViewById(R.id.recycler);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        new Thread(() -> {
+        backButton = v.findViewById(R.id.btnBackToMenu);
+        backButton.setOnClickListener(b -> {
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new SplashFragment())
+                    .commit();
+        });
+
+        new LoadHistoryTask().execute();
+        return v;
+    }
+
+    private class LoadHistoryTask extends android.os.AsyncTask<Void, Void, List<Quiz>> {
+        @Override
+        protected List<Quiz> doInBackground(Void... voids) {
             StateQuestionData repo = new StateQuestionData(requireContext());
             repo.open();
             List<Quiz> data = repo.loadAllQuizzesDesc();
             repo.close();
-            requireActivity().runOnUiThread(() -> rv.setAdapter(new HistoryAdapter(data)));
-        }).start();
+            return data;
+        }
 
-        return v;
+        @Override
+        protected void onPostExecute(List<Quiz> quizzes) {
+            rv.setAdapter(new HistoryAdapter(quizzes));
+        }
     }
 }

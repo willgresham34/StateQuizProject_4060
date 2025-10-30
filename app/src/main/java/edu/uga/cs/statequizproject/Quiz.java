@@ -26,7 +26,8 @@ public class Quiz {
     public int getAnsweredCount() {
         return answeredCount;
     }
-    //setters and incs
+
+    //setters
     public void setQuizDate(String date){
         this.quizDate = date;
     }

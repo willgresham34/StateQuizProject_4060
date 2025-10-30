@@ -1,4 +1,3 @@
-
 package edu.uga.cs.statequizproject;
 
 import androidx.annotation.NonNull;
@@ -25,7 +24,7 @@ public class QuizPagerAdapter extends FragmentStateAdapter {
 
     @Override
     public int getItemCount() {
-        // questions + final result page
+        // questions and  final result page
         return dto.getQuestions().size() + 1;
     }
 }

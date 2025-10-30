@@ -1,4 +1,3 @@
-
 package edu.uga.cs.statequizproject;
 
 import android.os.Bundle;

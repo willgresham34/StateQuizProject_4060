@@ -16,7 +16,7 @@ public class QuizQuestion extends StateQuestion {
         this.userAnswer = userAnswer;
     }
 
-    // Getters / setters
+    // getters and setters
     public long getQuizId() { return quizId; }
     public void setQuizId(long quizId) { this.quizId = quizId; }
 

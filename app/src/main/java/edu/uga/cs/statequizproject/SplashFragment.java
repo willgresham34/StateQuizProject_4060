@@ -1,4 +1,3 @@
-
 package edu.uga.cs.statequizproject;
 
 import android.os.Bundle;
@@ -19,25 +18,29 @@ public class SplashFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_splash, container, false);
         TextView tv = v.findViewById(R.id.tvDesc);
         ProgressBar pb = v.findViewById(R.id.progress);
         Button start = v.findViewById(R.id.btnStart);
         Button history = v.findViewById(R.id.btnHistory);
 
-        // Seed DB if needed in background
         pb.setVisibility(View.VISIBLE);
+
         new Thread(() -> {
-            StateQuestionData repo = new StateQuestionData(requireContext());
-            repo.open();
-            repo.ensureSeededFromCsvIfEmpty();
-            repo.close();
-            requireActivity().runOnUiThread(() -> pb.setVisibility(View.GONE));
+            try {
+                StateQuestionData repo = new StateQuestionData(requireContext());
+                repo.open();
+                repo.ensureSeededFromCsvIfEmpty();
+                repo.close();
+            } finally {
+                requireActivity().runOnUiThread(() -> pb.setVisibility(View.GONE));
+            }
         }).start();
 
         start.setOnClickListener(b -> {
-            // create a new quiz
             new Thread(() -> {
                 StateQuestionData repo = new StateQuestionData(requireContext());
                 repo.open();
@@ -45,20 +48,20 @@ public class SplashFragment extends Fragment {
                 repo.close();
                 requireActivity().runOnUiThread(() -> {
                     requireActivity().getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.fragment_container, QuizFragment.newInstance(quizId))
-                        .addToBackStack(null)
-                        .commit();
+                            .beginTransaction()
+                            .replace(R.id.fragment_container, QuizFragment.newInstance(quizId))
+                            .addToBackStack(null)
+                            .commit();
                 });
             }).start();
         });
 
         history.setOnClickListener(b -> {
             requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, new HistoryFragment())
-                .addToBackStack(null)
-                .commit();
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new HistoryFragment())
+                    .addToBackStack(null)
+                    .commit();
         });
 
         return v;

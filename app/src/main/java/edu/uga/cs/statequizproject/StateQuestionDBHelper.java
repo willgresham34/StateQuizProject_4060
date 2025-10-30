@@ -12,32 +12,32 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "statequestion.db";
     private static final int DB_VERSION = 1;
 
-    // Tables
+    // tables
     public static final String TABLE_STATEQUESTIONS = "statequestions";
     public static final String TABLE_QUIZ = "quiz";
     public static final String  TABLE_QQ = "qq";
 
-    // Columns for state questions
+    // columns for state questions
     public static final String STATEQUESTIONS_COLUMN_ID            = "_id";
     public static final String STATEQUESTIONS_COLUMN_STATE         = "state";
     public static final String STATEQUESTIONS_COLUMN_CAPITAL       = "capital";
     public static final String STATEQUESTIONS_COLUMN_SECOND_CITY   = "second_city";
     public static final String STATEQUESTIONS_COLUMN_THIRD_CITY    = "third_city";
 
-    // Columns for quiz
+    // columns for quiz
     public static final String QUIZ_COLUMN_ID = "_id";
     public static final String QUIZ_COLUMN_DATE = "date";
     public static final String QUIZ_COlUMN_CORRECT_COUNT = "correct_count";
     public static final String QUIZ_COLUMN_ANSWERED_COUNT = "answered_count";
 
-    //columns for qq relation
+    // columns for qq relation
     public static final String QQ_ID = "_id";
     public static final String QQ_COLUMN_QUIZ = "quiz_id";
     public static final String QQ_COLUMN_QUESTION = "question_id";
     public static final String QQ_COLUMN_ANSWER = "answer";
     private static StateQuestionDBHelper helperInstance;
 
-    // Create table state questions
+    // create table state questions
     private static final String CREATE_STATEQUESTIONS =
             "CREATE TABLE " + TABLE_STATEQUESTIONS + " (" +
                     STATEQUESTIONS_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
