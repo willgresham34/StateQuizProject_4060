@@ -1,3 +1,13 @@
 <resources>
-    <string name="app_name">StateQuizProject</string>
+    <string name="app_name">State Capitals Quiz</string>
+    <string name="start_quiz">Start Quiz</string>
+    <string name="view_history">View Past Results</string>
+    <string name="help">Help</string>
+    <string name="quiz_title">State Capitals Quiz</string>
+    <string name="question_prompt">What is the capital of %1$s?</string>
+    <string name="next">Next</string>
+    <string name="finish">Finish</string>
+    <string name="your_score">Your score: %1$d / %2$d</string>
+    <string name="loading">Loading…</string>
+
 </resources>
