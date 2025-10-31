@@ -1,6 +1,7 @@
 package edu.uga.cs.statequizproject;
 
 import android.os.Bundle;
+import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,7 +41,7 @@ public class HistoryFragment extends Fragment {
         return v;
     }
 
-    private class LoadHistoryTask extends android.os.AsyncTask<Void, Void, List<Quiz>> {
+    private class LoadHistoryTask extends AsyncTask<Void, Void, List<Quiz>> {
         @Override
         protected List<Quiz> doInBackground(Void... voids) {
             StateQuestionData repo = new StateQuestionData(requireContext());

@@ -1,5 +1,7 @@
 package edu.uga.cs.statequizproject;
 
+import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -31,6 +33,7 @@ public class QuizFragment extends Fragment {
         setRetainInstance(true);
     }
 
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -38,89 +41,122 @@ public class QuizFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_quiz, container, false);
         ViewPager2 pager = v.findViewById(R.id.pager);
+        new LoadQuizTask(requireContext(), pager, quizId, this).execute();
 
-        // load quiz in background
-        new Thread(() -> {
-            StateQuestionData repo = new StateQuestionData(requireContext());
+        return v;
+    }
+
+    private static class LoadQuizTask extends AsyncTask<Void, Void, QuizDto> {
+        private final Context ctx;
+        private final ViewPager2 pager;
+        private final long quizId;
+        private final Fragment fragment;
+
+        LoadQuizTask(Context ctx, ViewPager2 pager, long quizId, Fragment fragment) {
+            this.ctx = ctx.getApplicationContext();
+            this.pager = pager;
+            this.quizId = quizId;
+            this.fragment = fragment;
+        }
+
+        @Override
+        protected QuizDto doInBackground(Void... voids) {
+            StateQuestionData repo = new StateQuestionData(ctx);
             repo.open();
             QuizDto dto = repo.loadQuizDto(quizId);
             repo.close();
-            currentDto = dto;
+            return dto;
+        }
 
-            requireActivity().runOnUiThread(() -> {
-                QuizPagerAdapter adapter = new QuizPagerAdapter(this, dto);
-                pager.setAdapter(adapter);
+        @Override
+        protected void onPostExecute(QuizDto dto) {
+            if (dto == null || fragment.getContext() == null) return;
 
-                pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-                    int lastPos = 0;
+            ((QuizFragment) fragment).currentDto = dto;
 
-                    @Override
-                    public void onPageSelected(int position) {
-                        super.onPageSelected(position);
+            QuizPagerAdapter adapter = new QuizPagerAdapter(fragment, dto);
+            pager.setAdapter(adapter);
 
-                        // when we leave a question, repull latest answers and save counts
-                        if (position != lastPos && lastPos < dto.getQuestions().size()) {
-                            long qid = dto.getQuizId();
-                            // recompute on db side
-                            new Thread(() -> {
-                                StateQuestionData r2 = new StateQuestionData(requireContext());
-                                r2.open();
-                                // just reload and update counts
-                                QuizDto tmp = r2.loadQuizDto(qid);
-                                tmp.recomputeCounters();
-                                r2.finalizePartial(qid, tmp.getCorrectCount(), tmp.getAnsweredCount());
-                                r2.close();
-                            }).start();
+            pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+
+                @Override
+                public void onPageSelected(int position) {
+                    super.onPageSelected(position);
+
+                    int lastIndex = adapter.getItemCount() - 1;
+                    boolean isLastPage = (position == lastIndex);
+
+                    if (!isLastPage) return;
+
+                    QuizDto cur = ((QuizFragment) fragment).currentDto;
+
+                    cur.recomputeCounters();
+                    if (cur.getAnsweredCount() == cur.getTotalCount()) {
+                        if (cur.getQuizDate() == null || cur.getQuizDate().trim().isEmpty()) {
+                            cur.setQuizDate(String.valueOf(System.currentTimeMillis()));
                         }
-
-                        lastPos = position;
-
-                        // if this is the result page, we’re done (adapter put result as last)
+                        adapter.notifyItemChanged(position);
                     }
-                });
-            });
-        }).start();
 
-        return v;
+                    new SaveOrFinalizeTask(fragment.requireContext(), cur).execute();
+                }
+
+            });
+        }
+    }
+
+    public static class SaveOrFinalizeTask extends AsyncTask<Void, Void, Void> {
+        private final Context ctx;
+        private final QuizDto dto;
+
+        SaveOrFinalizeTask(Context ctx, QuizDto dto) {
+            this.ctx = ctx.getApplicationContext();
+            this.dto = dto;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            if (dto == null) return null;
+
+            StateQuestionData repo = new StateQuestionData(ctx);
+            repo.open();
+
+            dto.recomputeCounters();
+
+            repo.storeQuiz(dto);
+            repo.close();
+
+            return null;
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        // capture current progress
         if (currentDto != null) {
             currentDto.recomputeCounters();
-            new Thread(() -> {
-                StateQuestionData repo = new StateQuestionData(requireContext());
-                repo.open();
-                repo.finalizePartial(
-                        currentDto.getQuizId(),
-                        currentDto.getCorrectCount(),
-                        currentDto.getAnsweredCount()
-                );
-                repo.close();
-            }).start();
+            if (currentDto.getAnsweredCount() == currentDto.getTotalCount()) {
+                if (currentDto.getQuizDate() == null || currentDto.getQuizDate().trim().isEmpty()) {
+                    currentDto.setQuizDate(String.valueOf(System.currentTimeMillis()));
+                }
+            }
+            new SaveOrFinalizeTask(requireContext(), currentDto).execute();
         }
     }
+
 
     @Override
     public void onResume() {
         super.onResume();
-        // reload from db in case orientation changed or app was backgrounded
-        new Thread(() -> {
-            StateQuestionData repo = new StateQuestionData(requireContext());
-            repo.open();
-            QuizDto dto = repo.loadQuizDto(quizId);
-            repo.close();
-            currentDto = dto;
-
-            requireActivity().runOnUiThread(() -> {
-                ViewPager2 pager = getView().findViewById(R.id.pager);
-                if (pager != null) {
-                    pager.setAdapter(new QuizPagerAdapter(this, dto));
-                }
-            });
-        }).start();
+        View v = getView();
+        if (v == null) return;
+        ViewPager2 pager = v.findViewById(R.id.pager);
+        new LoadQuizTask(requireContext(), pager, quizId, this).execute();
     }
+
+    public QuizDto getCurrentDto() {
+        return currentDto;
+    }
+
 
 }

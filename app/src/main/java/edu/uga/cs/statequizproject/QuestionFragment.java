@@ -20,7 +20,6 @@ public class QuestionFragment extends Fragment {
 
     private static final String ARG_QUIZ_ID = "quiz_id";
     private static final String ARG_INDEX = "index";
-    private long quizId;
     private int index;
 
     public static QuestionFragment newInstance(long quizId, int index) {
@@ -35,7 +34,6 @@ public class QuestionFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        quizId = getArguments().getLong(ARG_QUIZ_ID);
         index = getArguments().getInt(ARG_INDEX);
         setRetainInstance(true);
     }
@@ -50,45 +48,43 @@ public class QuestionFragment extends Fragment {
         RadioButton rb2 = v.findViewById(R.id.choice2);
         RadioButton rb3 = v.findViewById(R.id.choice3);
 
-        new Thread(() -> {
-            StateQuestionData repo = new StateQuestionData(requireContext());
-            repo.open();
-            QuizDto dto = repo.loadQuizDto(quizId);
-            repo.close();
-            QuizQuestion q = dto.getQuestions().get(index);
+        QuizFragment parent = (QuizFragment) getParentFragment();
+        if (parent == null || parent.getCurrentDto() == null) return v;
 
-            String prompt = getString(R.string.question_prompt, q.getState());
+        QuizDto dto = parent.getCurrentDto();
+        QuizQuestion q = dto.getQuestions().get(index);
 
-            List<String> choices = new ArrayList<>();
-            choices.add(q.getCapital());
-            choices.add(q.getSecondCity());
-            choices.add(q.getThirdCity());
-            Collections.shuffle(choices);
+        String prompt = getString(R.string.question_prompt, q.getState());
+        tv.setText(prompt);
 
-            requireActivity().runOnUiThread(() -> {
-                tv.setText(prompt);
-                rb1.setText(choices.get(0));
-                rb2.setText(choices.get(1));
-                rb3.setText(choices.get(2));
+        List<String> choices = new ArrayList<>();
+        choices.add(q.getCapital());
+        choices.add(q.getSecondCity());
+        choices.add(q.getThirdCity());
+        Collections.shuffle(choices);
 
-                // restore previous selection
-                if (q.getUserAnswer() != null) {
-                    if (rb1.getText().toString().equalsIgnoreCase(q.getUserAnswer())) rb1.setChecked(true);
-                    else if (rb2.getText().toString().equalsIgnoreCase(q.getUserAnswer())) rb2.setChecked(true);
-                    else if (rb3.getText().toString().equalsIgnoreCase(q.getUserAnswer())) rb3.setChecked(true);
-                }
+        rb1.setText(choices.get(0));
+        rb2.setText(choices.get(1));
+        rb3.setText(choices.get(2));
 
-                group.setOnCheckedChangeListener((g, checkedId) -> {
-                    RadioButton selected = v.findViewById(checkedId);
-                    String answer = selected.getText().toString();
-                    new Thread(() -> {
-                        StateQuestionData repo2 = new StateQuestionData(requireContext());
-                        repo2.saveAnswer(quizId, q.getId(), answer);
-                    }).start();
-                });
-            });
-        }).start();
+        // restore selection from DTO
+        String ua = q.getUserAnswer();
+        if (ua != null) {
+            if (rb1.getText().toString().equalsIgnoreCase(ua)) rb1.setChecked(true);
+            else if (rb2.getText().toString().equalsIgnoreCase(ua)) rb2.setChecked(true);
+            else if (rb3.getText().toString().equalsIgnoreCase(ua)) rb3.setChecked(true);
+        }
+
+        // write to DTO
+        group.setOnCheckedChangeListener((g, checkedId) -> {
+            RadioButton selected = v.findViewById(checkedId);
+            if (selected != null) {
+                q.setUserAnswer(selected.getText().toString());
+                new QuizFragment.SaveOrFinalizeTask(requireContext(), parent.getCurrentDto()).execute();
+            }
+        });
 
         return v;
     }
+
 }

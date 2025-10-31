@@ -39,58 +39,6 @@ public class StateQuestionData {
         return db != null && db.isOpen();
     }
 
-    public List<Quiz> retrieveAllQuizzes() {
-        ArrayList<Quiz> quizzes = new ArrayList<>();
-        Cursor cursor = null;
-
-        try {
-            cursor = db.query(
-                    StateQuestionDBHelper.TABLE_QUIZ,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-            );
-
-            if (cursor != null && cursor.getCount() > 0) {
-
-                while (cursor.moveToNext()) {
-
-                    int columnIndex;
-
-                    columnIndex = cursor.getColumnIndex(StateQuestionDBHelper.QUIZ_COLUMN_ID);
-                    long id = cursor.getLong(columnIndex);
-
-                    columnIndex = cursor.getColumnIndex(StateQuestionDBHelper.QUIZ_COLUMN_DATE);
-                    String date = cursor.getString(columnIndex);
-
-                    columnIndex = cursor.getColumnIndex(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT);
-                    int correct = cursor.getInt(columnIndex);
-
-                    columnIndex = cursor.getColumnIndex(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT);
-                    int answered = cursor.getInt(columnIndex);
-
-                    Quiz q = new Quiz(id, date, correct, answered);
-                    quizzes.add(q);
-                }
-            }
-
-            if (cursor != null)
-                Log.d(DEBUG_TAG, "Number of records from DB: " + cursor.getCount());
-            else
-                Log.d(DEBUG_TAG, "Number of records from DB: 0");
-        } catch (Exception e) {
-            Log.d(DEBUG_TAG, "Retrieve Quiz Exception: " + e);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-        return quizzes;
-    }
-
     // load a quiz and its questions
     public QuizDto loadQuizDto(long quizId) {
         QuizDto dto = new QuizDto(quizId);
@@ -164,60 +112,49 @@ public class StateQuestionData {
         return dto;
     }
 
-    // store new quiz
+    // store quiz
     public QuizDto storeQuiz(QuizDto dto) {
+        if (!isDbOpen()) open();
+
+        long quizId = dto.getQuizId();
 
         ContentValues values = new ContentValues();
-        values.put(StateQuestionDBHelper.QUIZ_COLUMN_DATE, dto.getQuizDate());
+        String d = dto.getQuizDate();
+        if (d == null || d.trim().isEmpty()) {
+            values.putNull(StateQuestionDBHelper.QUIZ_COLUMN_DATE);
+        } else {
+            values.put(StateQuestionDBHelper.QUIZ_COLUMN_DATE, d);
+        }
         values.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, dto.getAnsweredCount());
         values.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, dto.getCorrectCount());
 
-        long quizId = db.insert(StateQuestionDBHelper.TABLE_QUIZ, null, values);
-
-        dto.setQuizId(quizId);
+        db.update(
+                StateQuestionDBHelper.TABLE_QUIZ,
+                values,
+                StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
+                new String[]{ String.valueOf(quizId) }
+        );
 
         for (QuizQuestion item : dto.getQuestions()) {
             ContentValues val = new ContentValues();
-            val.put(StateQuestionDBHelper.QQ_COLUMN_QUIZ, quizId);
-            val.put(StateQuestionDBHelper.QQ_COLUMN_QUESTION, item.getId());
             if (item.getUserAnswer() != null) {
                 val.put(StateQuestionDBHelper.QQ_COLUMN_ANSWER, item.getUserAnswer());
             } else {
                 val.putNull(StateQuestionDBHelper.QQ_COLUMN_ANSWER);
             }
-            db.insert(StateQuestionDBHelper.TABLE_QQ, null, val);
+
+            db.update(
+                    StateQuestionDBHelper.TABLE_QQ,
+                    val,
+                    StateQuestionDBHelper.QQ_COLUMN_QUIZ + "=? AND " +
+                            StateQuestionDBHelper.QQ_COLUMN_QUESTION + "=?",
+                    new String[]{ String.valueOf(quizId), String.valueOf(item.getId()) }
+            );
         }
 
-        Log.d(DEBUG_TAG, "Stored quiz with id: " + quizId + " and " + dto.getQuestions().size() + " questions");
+        Log.d(DEBUG_TAG, "Updated quiz with id: " + quizId + " and " + dto.getQuestions().size() + " questions");
 
         return dto;
-    }
-
-    // original seeder
-    public void seedStateQuestions(Context context) {
-        long count = DatabaseUtils.queryNumEntries(db, StateQuestionDBHelper.TABLE_STATEQUESTIONS);
-        if (count > 0) return;
-
-        try {
-            InputStream in_s = context.getAssets().open("state_capitals.csv");
-            CSVReader reader = new CSVReader(new InputStreamReader(in_s));
-            reader.readNext();
-            String[] nextRow;
-            while ((nextRow = reader.readNext()) != null) {
-
-                ContentValues values = new ContentValues();
-
-                values.put(StateQuestionDBHelper.STATEQUESTIONS_COLUMN_STATE, nextRow[0]);
-                values.put(StateQuestionDBHelper.STATEQUESTIONS_COLUMN_CAPITAL, nextRow[1]);
-                values.put(StateQuestionDBHelper.STATEQUESTIONS_COLUMN_SECOND_CITY, nextRow[2]);
-                values.put(StateQuestionDBHelper.STATEQUESTIONS_COLUMN_THIRD_CITY, nextRow[3]);
-
-                db.insert(StateQuestionDBHelper.TABLE_STATEQUESTIONS, null, values);
-
-            }
-        } catch (Exception e) {
-            Log.e(DEBUG_TAG, e.toString());
-        }
     }
 
     // make sure db is seeded
@@ -260,10 +197,9 @@ public class StateQuestionData {
 
         // insert quiz header
         ContentValues qv = new ContentValues();
-        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_DATE,
-                String.valueOf(System.currentTimeMillis()));
         qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, 0);
         qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, 0);
+        qv.putNull(StateQuestionDBHelper.QUIZ_COLUMN_DATE);
 
         long quizId = db.insert(StateQuestionDBHelper.TABLE_QUIZ, null, qv);
         if (quizId == -1) {
@@ -299,88 +235,6 @@ public class StateQuestionData {
         return quizId;
     }
 
-
-    // save a single answer, then recompute quiz counters
-    public void saveAnswer(long quizId, long questionRowId, String answer) {
-        if (!isDbOpen()) {
-            open();
-        }
-
-        ContentValues v = new ContentValues();
-        v.put(StateQuestionDBHelper.QQ_COLUMN_ANSWER, answer);
-        db.update(
-                StateQuestionDBHelper.TABLE_QQ,
-                v,
-                StateQuestionDBHelper.QQ_COLUMN_QUIZ + "=? AND " +
-                        StateQuestionDBHelper.QQ_COLUMN_QUESTION + "=?",
-                new String[]{ String.valueOf(quizId), String.valueOf(questionRowId) }
-        );
-
-        // recompute
-        QuizDto dto = loadQuizDto(quizId);
-        dto.recomputeCounters();
-
-        ContentValues qv = new ContentValues();
-        qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, dto.getCorrectCount());
-        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, dto.getAnsweredCount());
-        db.update(
-                StateQuestionDBHelper.TABLE_QUIZ,
-                qv,
-                StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
-                new String[]{ String.valueOf(quizId) }
-        );
-    }
-
-
-    // finalize quiz at the end
-    public void finalizeQuiz(long quizId) {
-        if (!isDbOpen()) {
-            open();
-        }
-
-        QuizDto dto = loadQuizDto(quizId);
-        dto.recomputeCounters();
-
-        ContentValues qv = new ContentValues();
-        qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, dto.getCorrectCount());
-        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, dto.getAnsweredCount());
-        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_DATE, String.valueOf(System.currentTimeMillis()));
-
-        db.update(
-                StateQuestionDBHelper.TABLE_QUIZ,
-                qv,
-                StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
-                new String[]{String.valueOf(quizId)}
-        );
-    }
-
-    // helper
-    public void finalizePartial(long quizId, int correct, int answered) {
-        if (!isDbOpen()) open();
-        ContentValues qv = new ContentValues();
-        qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, correct);
-        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, answered);
-        db.update(
-                StateQuestionDBHelper.TABLE_QUIZ,
-                qv,
-                StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
-                new String[]{ String.valueOf(quizId) }
-        );
-    }
-
-    public void finalizeQuizWithCounts(long quizId, int correct, int answered) {
-        if (!isDbOpen()) open();
-        ContentValues qv = new ContentValues();
-        qv.put(StateQuestionDBHelper.QUIZ_COlUMN_CORRECT_COUNT, correct);
-        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_ANSWERED_COUNT, answered);
-        qv.put(StateQuestionDBHelper.QUIZ_COLUMN_DATE, String.valueOf(System.currentTimeMillis()));
-        db.update(
-                StateQuestionDBHelper.TABLE_QUIZ,
-                qv,
-                StateQuestionDBHelper.QUIZ_COLUMN_ID + "=?",
-                new String[]{ String.valueOf(quizId) }
-        );
-    }
 
     // load all quizzes newest to oldest for HistoryFragment
     public List<Quiz> loadAllQuizzesDesc() {

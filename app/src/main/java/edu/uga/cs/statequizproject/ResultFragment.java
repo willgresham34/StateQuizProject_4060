@@ -1,6 +1,5 @@
 package edu.uga.cs.statequizproject;
 
-import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,7 +14,6 @@ import androidx.fragment.app.Fragment;
 public class ResultFragment extends Fragment {
 
     private static final String ARG_QUIZ_ID = "quiz_id";
-    private long quizId;
 
     public static ResultFragment newInstance(long quizId) {
         ResultFragment f = new ResultFragment();
@@ -28,7 +26,6 @@ public class ResultFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        quizId = getArguments().getLong(ARG_QUIZ_ID);
         setRetainInstance(true);
     }
 
@@ -42,8 +39,20 @@ public class ResultFragment extends Fragment {
         Button again = v.findViewById(R.id.btnAgain);
         Button history = v.findViewById(R.id.btnSeeHistory);
 
-        Context appCtx = requireContext().getApplicationContext();
-        new FinalizeQuizTask(appCtx, tv).execute(quizId);
+        Fragment parent = getParentFragment();
+        QuizDto dto = (parent instanceof QuizFragment) ? ((QuizFragment) parent).getCurrentDto() : null;
+
+        if (dto != null) {
+            tv.setText(
+                    getString(
+                            R.string.your_score,
+                            dto.getCorrectCount(),
+                            dto.getQuestions().size()
+                    )
+            );
+        } else {
+            tv.setText("Your score: —/—");
+        }
 
         again.setOnClickListener(b -> {
             requireActivity().getSupportFragmentManager()
@@ -63,45 +72,4 @@ public class ResultFragment extends Fragment {
         return v;
     }
 
-    private class FinalizeQuizTask extends android.os.AsyncTask<Long, Void, QuizDto> {
-
-        private final Context appContext;
-        private final TextView scoreView;
-
-        FinalizeQuizTask(Context appContext, TextView scoreView) {
-            this.appContext = appContext;
-            this.scoreView = scoreView;
-        }
-
-        @Override
-        protected QuizDto doInBackground(Long... params) {
-            long qid = params[0];
-            StateQuestionData repo = new StateQuestionData(appContext);
-            repo.open();
-
-            QuizDto dto = repo.loadQuizDto(qid);
-            dto.recomputeCounters();
-            repo.finalizeQuizWithCounts(
-                    qid,
-                    dto.getCorrectCount(),
-                    dto.getAnsweredCount()
-            );
-            repo.close();
-            return dto;
-        }
-
-        @Override
-        protected void onPostExecute(QuizDto dto) {
-            if (!isAdded()) {
-                return;
-            }
-            scoreView.setText(
-                    getString(
-                            R.string.your_score,
-                            dto.getCorrectCount(),
-                            dto.getQuestions().size()
-                    )
-            );
-        }
-    }
 }

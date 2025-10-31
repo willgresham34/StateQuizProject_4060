@@ -1,6 +1,5 @@
 package edu.uga.cs.statequizproject;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -10,7 +9,7 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
 
     private static final String DEBUG_TAG = "StateQuestionDBHelper";
     private static final String DB_NAME = "statequestion.db";
-    private static final int DB_VERSION = 1;
+    private static final int DB_VERSION = 2;
 
     // tables
     public static final String TABLE_STATEQUESTIONS = "statequestions";
@@ -50,7 +49,7 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
     private static final String CREATE_QUIZ =
             "CREATE TABLE " + TABLE_QUIZ + " (" +
                     QUIZ_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    QUIZ_COLUMN_DATE + " TEXT NOT NULL, " +
+                    QUIZ_COLUMN_DATE + " TEXT, " +
                     QUIZ_COlUMN_CORRECT_COUNT + " INTEGER NOT NULL, " +
                     QUIZ_COLUMN_ANSWERED_COUNT + " INTEGER NOT NULL" +
                     ");";
