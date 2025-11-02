@@ -27,16 +27,5 @@ public class Quiz {
         return answeredCount;
     }
 
-    //setters
-    public void setQuizDate(String date){
-        this.quizDate = date;
-    }
-    public void incrementAnsweredCount(){
-        this.answeredCount++;
-    }
-    public void incrementCorrectCount(){
-        this.correctCount++;
-    }
-
 }
 
