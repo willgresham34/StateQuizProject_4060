@@ -1,6 +1,7 @@
 package edu.uga.cs.statequizproject;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -15,8 +16,11 @@ import androidx.viewpager2.widget.ViewPager2;
 public class QuizFragment extends Fragment {
 
     private static final String ARG_QUIZ_ID = "quiz_id";
+    private static final String PREFS = "quiz_prefs";
+    private String pageKey(long quizId) { return "quiz_page_" + quizId; }
     private long quizId;
     private QuizDto currentDto; // cache
+    private int currentPage = 0;
 
     public static QuizFragment newInstance(long quizId) {
         QuizFragment f = new QuizFragment();
@@ -41,7 +45,12 @@ public class QuizFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_quiz, container, false);
         ViewPager2 pager = v.findViewById(R.id.pager);
-        new LoadQuizTask(requireContext(), pager, quizId, this).execute();
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        int savedPage = prefs.getInt(pageKey(quizId), 0);
+        currentPage = savedPage;
+
+        new LoadQuizTask(requireContext(), pager, quizId, this, currentPage).execute();
 
         return v;
     }
@@ -51,12 +60,14 @@ public class QuizFragment extends Fragment {
         private final ViewPager2 pager;
         private final long quizId;
         private final Fragment fragment;
+        private final int savedPage;
 
-        LoadQuizTask(Context ctx, ViewPager2 pager, long quizId, Fragment fragment) {
+        LoadQuizTask(Context ctx, ViewPager2 pager, long quizId, Fragment fragment, int savedPage) {
             this.ctx = ctx.getApplicationContext();
             this.pager = pager;
             this.quizId = quizId;
             this.fragment = fragment;
+            this.savedPage = savedPage;
         }
 
         @Override
@@ -102,6 +113,7 @@ public class QuizFragment extends Fragment {
                 }
 
             });
+            pager.setCurrentItem(savedPage, false);
         }
     }
 
@@ -133,6 +145,18 @@ public class QuizFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
+
+        View v = getView();
+        if (v != null) {
+            ViewPager2 pager = v.findViewById(R.id.pager);
+            int pageToSave = (pager != null && pager.getAdapter() != null)
+                    ? pager.getCurrentItem()
+                    : currentPage;
+
+            SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            prefs.edit().putInt(pageKey(quizId), pageToSave).apply();
+        }
+
         if (currentDto != null) {
             currentDto.recomputeCounters();
             if (currentDto.getAnsweredCount() == currentDto.getTotalCount()) {
@@ -151,7 +175,12 @@ public class QuizFragment extends Fragment {
         View v = getView();
         if (v == null) return;
         ViewPager2 pager = v.findViewById(R.id.pager);
-        new LoadQuizTask(requireContext(), pager, quizId, this).execute();
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        int savedPage = prefs.getInt(pageKey(quizId), 0);
+        currentPage = savedPage;
+
+        new LoadQuizTask(requireContext(), pager, quizId, this, currentPage).execute();
     }
 
     public QuizDto getCurrentDto() {
