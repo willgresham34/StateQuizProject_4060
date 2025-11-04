@@ -1,5 +1,10 @@
 package edu.uga.cs.statequizproject;
 
+
+/*
+This represents the StateQuestion objects that are stored in DB
+and read from csv
+ */
 public class StateQuestion {
 
     private long id;

@@ -56,6 +56,9 @@ public class SplashFragment extends Fragment {
         return v;
     }
 
+    /*
+    * Uses asynctask to seed database with the csv file if not already seeded
+    * */
     private static class SeedDbTask extends AsyncTask<Void, Void, Void> {
         private final ProgressBar pb;
         private final Context appCtx;
@@ -81,6 +84,9 @@ public class SplashFragment extends Fragment {
         }
     }
 
+    /*
+    * Calls dbHelper to create a quiz for user to take, uses asyncTask
+    *  */
     private static class CreateQuizTask extends AsyncTask<Integer, Void, Long> {
         interface OnCreated { void accept(long quizId); }
 

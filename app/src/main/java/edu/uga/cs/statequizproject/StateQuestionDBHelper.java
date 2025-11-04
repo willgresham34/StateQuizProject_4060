@@ -45,7 +45,7 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
                     STATEQUESTIONS_COLUMN_SECOND_CITY + " TEXT NOT NULL, " +
                     STATEQUESTIONS_COLUMN_THIRD_CITY + " TEXT NOT NULL" +
                     ");";
-
+    // create table quiz
     private static final String CREATE_QUIZ =
             "CREATE TABLE " + TABLE_QUIZ + " (" +
                     QUIZ_COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -53,7 +53,7 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
                     QUIZ_COlUMN_CORRECT_COUNT + " INTEGER NOT NULL, " +
                     QUIZ_COLUMN_ANSWERED_COUNT + " INTEGER NOT NULL" +
                     ");";
-
+    // create table for quiz questions
     private static final String CREATE_QQ = "CREATE TABLE " + TABLE_QQ + " (" +
             QQ_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             QQ_COLUMN_QUIZ + " INTEGER NOT NULL, " +
@@ -77,7 +77,7 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
         db.setForeignKeyConstraintsEnabled(true);
     }
 
-
+    // create the tables in order of reliance
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_STATEQUESTIONS);
@@ -86,6 +86,7 @@ public class StateQuestionDBHelper extends SQLiteOpenHelper {
         Log.d( DEBUG_TAG, "Table " + TABLE_STATEQUESTIONS + " created" );
     }
 
+    // drop table and recreate if the db version is incremented
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL( "drop table if exists " + TABLE_QQ);

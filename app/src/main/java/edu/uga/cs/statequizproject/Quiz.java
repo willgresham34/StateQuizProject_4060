@@ -1,5 +1,8 @@
 package edu.uga.cs.statequizproject;
 
+/*
+* This is the Quiz object that represents Quiz object in the database
+* */
 public class Quiz {
     private long id;
     private String quizDate;

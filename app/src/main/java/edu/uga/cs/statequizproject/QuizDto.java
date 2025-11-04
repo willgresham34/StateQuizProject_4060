@@ -3,6 +3,7 @@ package edu.uga.cs.statequizproject;
 import java.util.ArrayList;
 import java.util.List;
 
+// This dto is used to store the data for quizzes and allows them to also have
 public class QuizDto {
     private long quizId;
     private String quizDate;

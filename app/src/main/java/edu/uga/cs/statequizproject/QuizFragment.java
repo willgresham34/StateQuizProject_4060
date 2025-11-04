@@ -55,6 +55,8 @@ public class QuizFragment extends Fragment {
         return v;
     }
 
+    /*
+    * Uses asyncTask to load a Quiz*/
     private static class LoadQuizTask extends AsyncTask<Void, Void, QuizDto> {
         private final Context ctx;
         private final ViewPager2 pager;
@@ -117,6 +119,9 @@ public class QuizFragment extends Fragment {
         }
     }
 
+    /*
+    * Uses asyncTask to save a quiz to the database at different checkpoints
+    * */
     public static class SaveOrFinalizeTask extends AsyncTask<Void, Void, Void> {
         private final Context ctx;
         private final QuizDto dto;

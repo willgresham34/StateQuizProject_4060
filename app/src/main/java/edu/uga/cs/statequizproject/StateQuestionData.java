@@ -39,7 +39,7 @@ public class StateQuestionData {
         return db != null && db.isOpen();
     }
 
-    // load a quiz and its questions
+    // load a quiz and its questions using the quizId and return a quizDto
     public QuizDto loadQuizDto(long quizId) {
         QuizDto dto = new QuizDto(quizId);
 
@@ -112,7 +112,7 @@ public class StateQuestionData {
         return dto;
     }
 
-    // store quiz
+    // Uses the given QuizDto to store its info into qq and quiz  tables
     public QuizDto storeQuiz(QuizDto dto) {
         if (!isDbOpen()) open();
 
@@ -157,7 +157,7 @@ public class StateQuestionData {
         return dto;
     }
 
-    // make sure db is seeded
+    // checks if the database is already seeded from the csv and if not seeds its
     public void ensureSeededFromCsvIfEmpty() {
         // make sure db is open
         if (!isDbOpen()) {
@@ -189,7 +189,7 @@ public class StateQuestionData {
         }
     }
 
-    // create a new quiz with n random states
+    // creates a new quiz with n random states
     public long createNewQuiz(int n) {
         if (!isDbOpen()) {
             open();
@@ -236,7 +236,7 @@ public class StateQuestionData {
     }
 
 
-    // load all quizzes newest to oldest for HistoryFragment
+    // loads all quizzes newest to oldest for HistoryFragment
     public List<Quiz> loadAllQuizzesDesc() {
         if (!isDbOpen()) {
             open();

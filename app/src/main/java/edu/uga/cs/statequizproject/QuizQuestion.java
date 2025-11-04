@@ -1,5 +1,9 @@
 package edu.uga.cs.statequizproject;
 
+/*
+* This QQ is a stateQuestion but with added attributes of
+* userAnswer and quizId
+* */
 public class QuizQuestion extends StateQuestion {
     private long quizId;
     private String userAnswer;

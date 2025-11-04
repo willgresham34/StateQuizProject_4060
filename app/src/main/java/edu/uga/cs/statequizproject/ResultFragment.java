@@ -54,6 +54,7 @@ public class ResultFragment extends Fragment {
             tv.setText("Your score: —/—");
         }
 
+        // set listener for another quiz
         again.setOnClickListener(b -> {
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
@@ -61,6 +62,7 @@ public class ResultFragment extends Fragment {
                     .commit();
         });
 
+        // set listener to view history
         history.setOnClickListener(b -> {
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
